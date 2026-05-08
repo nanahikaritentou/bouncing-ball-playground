@@ -1,0 +1,29 @@
+{
+  "scenes": [
+    {
+      "name": "earth_normal",
+      "path": "earth_normal/scene.xml",
+      "files": ["earth_normal/scene.xml"]
+    },
+    {
+      "name": "low_gravity",
+      "path": "low_gravity/scene.xml",
+      "files": ["low_gravity/scene.xml"]
+    },
+    {
+      "name": "high_gravity",
+      "path": "high_gravity/scene.xml",
+      "files": ["high_gravity/scene.xml"]
+    },
+    {
+      "name": "super_bouncy",
+      "path": "super_bouncy/scene.xml",
+      "files": ["super_bouncy/scene.xml"]
+    },
+    {
+      "name": "dead_thud",
+      "path": "dead_thud/scene.xml",
+      "files": ["dead_thud/scene.xml"]
+    }
+  ]
+}

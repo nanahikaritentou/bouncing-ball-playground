@@ -1,4 +1,4 @@
-<mujoco model="bouncing_ball_playground">
+<mujoco model="earth_normal">
   <option timestep="0.002" gravity="0 0 -9.81" integrator="RK4"/>
 
   <visual>
