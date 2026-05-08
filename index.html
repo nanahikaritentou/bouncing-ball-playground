@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Bouncing Ball Playground</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: rgba(20, 28, 48, 0.85);
+    --text: #e6ecff;
+    --muted: #9aa6c2;
+    --accent: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+  #app { position: relative; width: 100vw; height: 100vh; }
+  canvas { display: block; }
+  #panel {
+    position: absolute; top: 16px; left: 16px;
+    background: var(--panel); padding: 16px 18px; border-radius: 10px;
+    backdrop-filter: blur(8px);
+    min-width: 260px; box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  h1 { margin: 0 0 4px; font-size: 16px; }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  .row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+  .row label { flex: 0 0 110px; font-size: 13px; color: var(--muted); }
+  .row input[type="range"] { flex: 1; }
+  .row .v { flex: 0 0 44px; text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; }
+  .btns { display: flex; gap: 8px; margin-top: 12px; }
+  button {
+    flex: 1; padding: 8px 12px; border: 0; border-radius: 6px;
+    background: var(--accent); color: #fff; font-weight: 600; cursor: pointer;
+    font-size: 13px;
+  }
+  button.ghost { background: rgba(255,255,255,0.08); color: var(--text); }
+  #stats {
+    position: absolute; bottom: 16px; left: 16px;
+    color: var(--muted); font-size: 11px; font-family: ui-monospace, monospace;
+    background: var(--panel); padding: 8px 12px; border-radius: 6px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="panel">
+    <h1>Bouncing Ball Playground</h1>
+    <div class="sub">Drop a ball. Tweak gravity & bounciness.</div>
+
+    <div class="row">
+      <label>Gravity</label>
+      <input id="g" type="range" min="0" max="20" step="0.1" value="9.81" />
+      <div class="v" id="gv">9.81</div>
+    </div>
+    <div class="row">
+      <label>Bounciness</label>
+      <input id="r" type="range" min="0" max="1" step="0.01" value="0.78" />
+      <div class="v" id="rv">0.78</div>
+    </div>
+    <div class="row">
+      <label>Damping</label>
+      <input id="d" type="range" min="0" max="0.05" step="0.001" value="0.005" />
+      <div class="v" id="dv">0.005</div>
+    </div>
+    <div class="row">
+      <label>Drop Height</label>
+      <input id="h" type="range" min="0.5" max="5" step="0.1" value="1.5" />
+      <div class="v" id="hv">1.5</div>
+    </div>
+    <div class="btns">
+      <button id="reset">Reset</button>
+      <button id="pause" class="ghost">Pause</button>
+    </div>
+  </div>
+  <div id="stats">v=0.00 m/s · h=0.00 m · bounces=0</div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const params = {
+  gravity: 9.81,
+  restitution: 0.78,
+  damping: 0.005,
+  dropHeight: 1.5,
+  ballRadius: 0.1,
+  paused: false,
+};
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b1220);
+scene.fog = new THREE.Fog(0x0b1220, 8, 25);
+
+const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(2.4, 1.4, 2.4);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.getElementById('app').appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.3, 0);
+controls.enableDamping = true;
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+sun.position.set(3, 5, 2);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -3; sun.shadow.camera.right = 3;
+sun.shadow.camera.top = 3; sun.shadow.camera.bottom = -3;
+scene.add(sun);
+
+const gridGeom = new THREE.PlaneGeometry(20, 20);
+const gridMat = new THREE.MeshStandardMaterial({
+  color: 0x1a2640, metalness: 0.0, roughness: 0.9
+});
+const floor = new THREE.Mesh(gridGeom, gridMat);
+floor.rotation.x = -Math.PI/2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const grid = new THREE.GridHelper(20, 40, 0x2a3a60, 0x1a2640);
+grid.position.y = 0.001;
+scene.add(grid);
+
+const ballMat = new THREE.MeshStandardMaterial({
+  color: 0xff6b6b, metalness: 0.1, roughness: 0.4
+});
+const ball = new THREE.Mesh(new THREE.SphereGeometry(params.ballRadius, 32, 24), ballMat);
+ball.castShadow = true;
+ball.receiveShadow = true;
+scene.add(ball);
+
+const state = { y: 0, vy: 0, x: 0, z: 0, vx: 0, vz: 0, bounces: 0, t: 0 };
+function resetBall() {
+  state.y = params.dropHeight;
+  state.vy = 0;
+  state.x = 0; state.z = 0;
+  state.vx = (Math.random() - 0.5) * 0.3;
+  state.vz = (Math.random() - 0.5) * 0.3;
+  state.bounces = 0;
+  state.t = 0;
+}
+resetBall();
+
+const wireUp = (id, key, fmt = (v) => v.toFixed(2)) => {
+  const el = document.getElementById(id);
+  const out = document.getElementById(id + 'v');
+  el.value = params[key];
+  out.textContent = fmt(params[key]);
+  el.addEventListener('input', () => {
+    params[key] = parseFloat(el.value);
+    out.textContent = fmt(params[key]);
+  });
+};
+wireUp('g', 'gravity');
+wireUp('r', 'restitution');
+wireUp('d', 'damping', v => v.toFixed(3));
+wireUp('h', 'dropHeight', v => v.toFixed(1));
+
+document.getElementById('reset').addEventListener('click', resetBall);
+const pauseBtn = document.getElementById('pause');
+pauseBtn.addEventListener('click', () => {
+  params.paused = !params.paused;
+  pauseBtn.textContent = params.paused ? 'Resume' : 'Pause';
+});
+
+const stats = document.getElementById('stats');
+const fixedDt = 1/240;
+let acc = 0, last = performance.now();
+
+function step(dt) {
+  state.vy -= params.gravity * dt;
+  state.vy *= 1 - params.damping;
+  state.vx *= 1 - params.damping;
+  state.vz *= 1 - params.damping;
+  state.y += state.vy * dt;
+  state.x += state.vx * dt;
+  state.z += state.vz * dt;
+  state.t += dt;
+
+  if (state.y < params.ballRadius) {
+    state.y = params.ballRadius;
+    if (state.vy < 0) {
+      state.vy = -state.vy * params.restitution;
+      if (Math.abs(state.vy) < 0.05) state.vy = 0;
+      state.bounces++;
+    }
+  }
+}
+
+function loop(now) {
+  requestAnimationFrame(loop);
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+  if (!params.paused) {
+    acc += dt;
+    while (acc >= fixedDt) { step(fixedDt); acc -= fixedDt; }
+  }
+  ball.position.set(state.x, state.y, state.z);
+  controls.update();
+  renderer.render(scene, camera);
+  stats.textContent =
+    `v=${Math.abs(state.vy).toFixed(2)} m/s · h=${(state.y - params.ballRadius).toFixed(2)} m · bounces=${state.bounces}`;
+}
+requestAnimationFrame(loop);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
