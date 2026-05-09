@@ -5,9 +5,10 @@ Submission for the ROBA Labs
 
 ## Files
 
-- `scene.xml` — MJCF scene: a sphere with a freejoint dropped onto a textured
-  ground plane. Gravity, contact stiffness, and impedance are tuned so the ball
-  bounces with a realistic decay
+- `assets/scenes/bouncing_ball.xml` — MJCF scene: a sphere with a freejoint
+  dropped onto a textured ground plane. Gravity, contact stiffness, and
+  impedance are tuned so the ball bounces with a realistic decay. ROBA Studio
+  reads MJCF from this path and exposes it in its scene selector
 - `index.html` — standalone Three.js demo with sliders for gravity, restitution,
   damping and drop height. Useful for offline preview without ROBA Studio
 
